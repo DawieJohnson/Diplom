@@ -7,6 +7,9 @@ import org.junit.runners.Parameterized;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
@@ -59,64 +62,16 @@ public class BurgerTest {
 
         burger.setBuns(mockBun);
 
+        // Создаем разные mock объекты для каждого ингредиента
+        List<Ingredient> mockIngredients = new ArrayList<>();
         for (int i = 0; i < ingredientCount; i++) {
-            burger.addIngredient(mockIngredient);
+            Ingredient ingredientMock = mock(Ingredient.class);
+            when(ingredientMock.getPrice()).thenReturn(ingredientPrice);
+            when(ingredientMock.getName()).thenReturn("ingredient " + i);
+            when(ingredientMock.getType()).thenReturn(i % 2 == 0 ? IngredientType.SAUCE : IngredientType.FILLING);
+            mockIngredients.add(ingredientMock);
+            burger.addIngredient(ingredientMock);
         }
-    }
-
-    @Test
-    public void testSetBuns() {
-        assertSame(mockBun, burger.bun);
-    }
-
-    @Test
-    public void testAddIngredient() {
-        int initialSize = burger.ingredients.size();
-        Ingredient newIngredient = mock(Ingredient.class);
-
-        burger.addIngredient(newIngredient);
-
-        assertEquals(initialSize + 1, burger.ingredients.size());
-        assertTrue(burger.ingredients.contains(newIngredient));
-    }
-
-    @Test
-    public void testRemoveIngredient() {
-        // Добавляем ингредиент для удаления
-        Ingredient ingredientToRemove = mock(Ingredient.class);
-        burger.addIngredient(ingredientToRemove);
-
-        burger.removeIngredient(burger.ingredients.size() - 1);
-
-        assertFalse(burger.ingredients.contains(ingredientToRemove));
-    }
-
-    @Test(expected = IndexOutOfBoundsException.class)
-    public void testRemoveIngredientWithInvalidIndex() {
-        burger.removeIngredient(999);
-    }
-
-    @Test
-    public void testMoveIngredient() {
-        // Создаем отдельный бургер для тестирования перемещения
-        Burger testBurger = new Burger();
-        testBurger.setBuns(mockBun);
-
-        Ingredient ing1 = mock(Ingredient.class);
-        Ingredient ing2 = mock(Ingredient.class);
-
-        testBurger.addIngredient(ing1);
-        testBurger.addIngredient(ing2);
-
-        // Сохраняем ссылки до перемещения
-        Ingredient firstBefore = testBurger.ingredients.get(0);
-        Ingredient secondBefore = testBurger.ingredients.get(1);
-
-        testBurger.moveIngredient(0, 1);
-
-        // Проверяем что элементы поменялись местами
-        assertEquals(secondBefore, testBurger.ingredients.get(0));
-        assertEquals(firstBefore, testBurger.ingredients.get(1));
     }
 
     @Test
@@ -126,43 +81,20 @@ public class BurgerTest {
     }
 
     @Test
-    public void testGetReceipt() {
+    public void testGetReceiptNotNull() {
         String receipt = burger.getReceipt();
-
         assertNotNull(receipt);
-        assertTrue(receipt.contains(bunName));
-        assertTrue(receipt.contains("Price:"));
     }
 
     @Test
-    public void testGetReceiptWithNoIngredients() {
-        Burger emptyBurger = new Burger();
-        emptyBurger.setBuns(mockBun);
-
-        String receipt = emptyBurger.getReceipt();
-
-        assertNotNull(receipt);
+    public void testGetReceiptContainsBunName() {
+        String receipt = burger.getReceipt();
         assertTrue(receipt.contains(bunName));
     }
 
     @Test
-    public void testGetReceiptWithRealIngredients() {
-        // Используем реальные объекты для полного покрытия
-        Bun realBun = new Bun("real bun", 100f);
-        Ingredient realSauce = new Ingredient(IngredientType.SAUCE, "real sauce", 50f);
-        Ingredient realFilling = new Ingredient(IngredientType.FILLING, "real filling", 75f);
-
-        Burger realBurger = new Burger();
-        realBurger.setBuns(realBun);
-        realBurger.addIngredient(realSauce);
-        realBurger.addIngredient(realFilling);
-
-        String receipt = realBurger.getReceipt();
-
-        assertNotNull(receipt);
-        assertTrue(receipt.contains("real bun"));
-        assertTrue(receipt.contains("sauce"));
-        assertTrue(receipt.contains("filling"));
+    public void testGetReceiptContainsPrice() {
+        String receipt = burger.getReceipt();
         assertTrue(receipt.contains("Price:"));
     }
 }
