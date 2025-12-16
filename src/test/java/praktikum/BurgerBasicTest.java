@@ -5,6 +5,9 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.text.DecimalFormatSymbols;
+import java.util.Locale;
+
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
@@ -55,8 +58,9 @@ public class BurgerBasicTest {
     }
 
     @Test
-    public void testAddIngredientContainsAdded() {
+    public void testAddIngredientAddsCorrectIngredient() {
         Ingredient newIngredient = mock(Ingredient.class);
+
         burger.addIngredient(newIngredient);
 
         assertTrue(burger.ingredients.contains(newIngredient));
@@ -80,16 +84,27 @@ public class BurgerBasicTest {
     }
 
     @Test
-    public void testMoveIngredientChangesOrder() {
+    public void testMoveIngredientRemovesFromSourceIndex() {
         burger.setBuns(mockBun);
-
         burger.addIngredient(sauceIngredient);
         burger.addIngredient(fillingIngredient);
 
         burger.moveIngredient(0, 1);
 
-        assertEquals(fillingIngredient, burger.ingredients.get(0));
-        assertEquals(sauceIngredient, burger.ingredients.get(1));
+        assertNotSame("Ингредиент должен быть перемещен с исходной позиции",
+                sauceIngredient, burger.ingredients.get(0));
+    }
+
+    @Test
+    public void testMoveIngredientPlacesToTargetIndex() {
+        burger.setBuns(mockBun);
+        burger.addIngredient(sauceIngredient);
+        burger.addIngredient(fillingIngredient);
+
+        burger.moveIngredient(0, 1);
+
+        assertEquals("Ингредиент должен быть перемещен на целевую позицию",
+                sauceIngredient, burger.ingredients.get(1));
     }
 
     @Test(expected = IndexOutOfBoundsException.class)
@@ -100,84 +115,128 @@ public class BurgerBasicTest {
     }
 
     @Test
-    public void testGetReceiptWithNoIngredientsNotNull() {
+    public void testGetReceiptNotNullWhenBunSet() {
+        when(mockBun.getName()).thenReturn("special bun");
         burger.setBuns(mockBun);
         String receipt = burger.getReceipt();
-        assertNotNull(receipt);
+        assertNotNull("Рецепт не должен быть null", receipt);
     }
 
     @Test
-    public void testGetReceiptWithNoIngredientsContainsBunName() {
-        when(mockBun.getName()).thenReturn("test bun name");
-        burger.setBuns(mockBun);
-        String receipt = burger.getReceipt();
-        assertTrue(receipt.contains("test bun name"));
-    }
-
-    @Test
-    public void testGetReceiptWithRealIngredientsNotNull() {
+    public void testGetReceiptWithRealIngredients() {
+        // Создаем реальные объекты
         Bun realBun = new Bun("real bun", 100f);
-        Ingredient realSauce = new Ingredient(IngredientType.SAUCE, "real sauce", 50f);
-        Ingredient realFilling = new Ingredient(IngredientType.FILLING, "real filling", 75f);
+        Ingredient sauce = new Ingredient(IngredientType.SAUCE, "hot sauce", 50f);
+        Ingredient filling = new Ingredient(IngredientType.FILLING, "cutlet", 75f);
+
+        // Создаем бургер
+        Burger realBurger = new Burger();
+        realBurger.setBuns(realBun);
+        realBurger.addIngredient(sauce);
+        realBurger.addIngredient(filling);
+
+        // Получаем рецепт
+        String receipt = realBurger.getReceipt();
+        receipt = normalizeReceipt(receipt);
+
+        // Ожидаемый результат вычисляем вручную
+        float expectedPrice = 100f * 2 + 50f + 75f; // 325f
+        char decimalSeparator = new DecimalFormatSymbols(Locale.getDefault()).getDecimalSeparator();
+        String expectedReceipt =
+                "(==== real bun ====)\n" +
+                        "= sauce hot sauce =\n" +
+                        "= filling cutlet =\n" +
+                        "(==== real bun ====)\n\n" +
+                        "Price: 325" + decimalSeparator + "000000\n";
+
+        expectedReceipt = normalizeReceipt(expectedReceipt);
+
+        assertEquals("Рецепт должен полностью совпадать",
+                expectedReceipt, receipt);
+    }
+
+    @Test
+    public void testGetReceiptWithOnlySauce() {
+        Bun realBun = new Bun("white bun", 150f);
+        Ingredient sauce = new Ingredient(IngredientType.SAUCE, "sour cream", 30f);
 
         Burger realBurger = new Burger();
         realBurger.setBuns(realBun);
-        realBurger.addIngredient(realSauce);
-        realBurger.addIngredient(realFilling);
+        realBurger.addIngredient(sauce);
 
         String receipt = realBurger.getReceipt();
-        assertNotNull(receipt);
+        receipt = normalizeReceipt(receipt);
+
+        float expectedPrice = 150f * 2 + 30f; // 330f
+        char decimalSeparator = new DecimalFormatSymbols(Locale.getDefault()).getDecimalSeparator();
+        String expectedReceipt =
+                "(==== white bun ====)\n" +
+                        "= sauce sour cream =\n" +
+                        "(==== white bun ====)\n\n" +
+                        "Price: 330" + decimalSeparator + "000000\n";
+
+        expectedReceipt = normalizeReceipt(expectedReceipt);
+
+        assertEquals("Рецепт с одним соусом должен полностью совпадать",
+                expectedReceipt, receipt);
     }
 
     @Test
-    public void testGetReceiptWithRealIngredientsContainsBunName() {
-        Bun realBun = new Bun("real bun", 100f);
-        Ingredient realSauce = new Ingredient(IngredientType.SAUCE, "real sauce", 50f);
+    public void testGetReceiptNoIngredients() {
+        Bun realBun = new Bun("empty bun", 50f);
 
         Burger realBurger = new Burger();
         realBurger.setBuns(realBun);
-        realBurger.addIngredient(realSauce);
 
         String receipt = realBurger.getReceipt();
-        assertTrue(receipt.contains("real bun"));
+        receipt = normalizeReceipt(receipt);
+
+        float expectedPrice = 50f * 2; // 100f
+        char decimalSeparator = new DecimalFormatSymbols(Locale.getDefault()).getDecimalSeparator();
+        String expectedReceipt =
+                "(==== empty bun ====)\n" +
+                        "(==== empty bun ====)\n\n" +
+                        "Price: 100" + decimalSeparator + "000000\n";
+
+        expectedReceipt = normalizeReceipt(expectedReceipt);
+
+        assertEquals("Рецепт без ингредиентов должен полностью совпадать",
+                expectedReceipt, receipt);
     }
 
     @Test
-    public void testGetReceiptWithRealIngredientsContainsSauce() {
-        Bun realBun = new Bun("real bun", 100f);
-        Ingredient realSauce = new Ingredient(IngredientType.SAUCE, "real sauce", 50f);
+    public void testGetReceiptCompleteFormat() {
+        Bun realBun = new Bun("burger bun", 80f);
+        Ingredient sauce1 = new Ingredient(IngredientType.SAUCE, "ketchup", 20f);
+        Ingredient filling1 = new Ingredient(IngredientType.FILLING, "cheese", 40f);
+        Ingredient sauce2 = new Ingredient(IngredientType.SAUCE, "mayo", 25f);
 
         Burger realBurger = new Burger();
         realBurger.setBuns(realBun);
-        realBurger.addIngredient(realSauce);
+        realBurger.addIngredient(sauce1);
+        realBurger.addIngredient(filling1);
+        realBurger.addIngredient(sauce2);
 
         String receipt = realBurger.getReceipt();
-        assertTrue(receipt.contains("sauce"));
+        receipt = normalizeReceipt(receipt);
+
+        float expectedPrice = 80f * 2 + 20f + 40f + 25f; // 245f
+        char decimalSeparator = new DecimalFormatSymbols(Locale.getDefault()).getDecimalSeparator();
+        String expectedReceipt =
+                "(==== burger bun ====)\n" +
+                        "= sauce ketchup =\n" +
+                        "= filling cheese =\n" +
+                        "= sauce mayo =\n" +
+                        "(==== burger bun ====)\n\n" +
+                        "Price: 245" + decimalSeparator + "000000\n";
+
+        expectedReceipt = normalizeReceipt(expectedReceipt);
+
+        assertEquals("Полный рецепт должен полностью совпадать",
+                expectedReceipt, receipt);
     }
 
-    @Test
-    public void testGetReceiptWithRealIngredientsContainsFilling() {
-        Bun realBun = new Bun("real bun", 100f);
-        Ingredient realFilling = new Ingredient(IngredientType.FILLING, "real filling", 75f);
-
-        Burger realBurger = new Burger();
-        realBurger.setBuns(realBun);
-        realBurger.addIngredient(realFilling);
-
-        String receipt = realBurger.getReceipt();
-        assertTrue(receipt.contains("filling"));
-    }
-
-    @Test
-    public void testGetReceiptWithRealIngredientsContainsPrice() {
-        Bun realBun = new Bun("real bun", 100f);
-        Ingredient realSauce = new Ingredient(IngredientType.SAUCE, "real sauce", 50f);
-
-        Burger realBurger = new Burger();
-        realBurger.setBuns(realBun);
-        realBurger.addIngredient(realSauce);
-
-        String receipt = realBurger.getReceipt();
-        assertTrue(receipt.contains("Price:"));
+    private String normalizeReceipt(String receipt) {
+        return receipt.replace("\r\n", "\n").replace("\r", "\n");
     }
 }

@@ -20,13 +20,13 @@ public class BurgerEdgeCasesTest {
     }
 
     @Test
-    public void testBurgerIngredientsInitialStateNotNull() {
+    public void testBurgerIngredientsListInitialized() {
         Burger burger = new Burger();
         assertNotNull(burger.ingredients);
     }
 
     @Test
-    public void testBurgerIngredientsInitialStateEmpty() {
+    public void testBurgerIngredientsInitialEmpty() {
         Burger burger = new Burger();
         assertTrue(burger.ingredients.isEmpty());
     }
@@ -44,23 +44,39 @@ public class BurgerEdgeCasesTest {
         burger.addIngredient(mockIngredient);
 
         assertEquals(0f, burger.getPrice(), 0.01f);
+    }
 
-        verify(mockBun, times(1)).getPrice(); // Две булки
+    @Test
+    public void testGetPriceWithZeroCostVerifiesBunPriceCall() {
+        Bun mockBun = Mockito.mock(Bun.class);
+        when(mockBun.getPrice()).thenReturn(0f);
+
+        Ingredient mockIngredient = Mockito.mock(Ingredient.class);
+        when(mockIngredient.getPrice()).thenReturn(0f);
+
+        Burger burger = new Burger();
+        burger.setBuns(mockBun);
+        burger.addIngredient(mockIngredient);
+
+        burger.getPrice();
+
+        verify(mockBun, times(1)).getPrice();
+    }
+
+    @Test
+    public void testGetPriceWithZeroCostVerifiesIngredientPriceCall() {
+        Bun mockBun = Mockito.mock(Bun.class);
+        when(mockBun.getPrice()).thenReturn(0f);
+
+        Ingredient mockIngredient = Mockito.mock(Ingredient.class);
+        when(mockIngredient.getPrice()).thenReturn(0f);
+
+        Burger burger = new Burger();
+        burger.setBuns(mockBun);
+        burger.addIngredient(mockIngredient);
+
+        burger.getPrice();
+
         verify(mockIngredient, times(1)).getPrice();
-    }
-
-    @Test
-    public void testIngredientTypeEnumSauce() {
-        assertEquals("SAUCE", IngredientType.SAUCE.name());
-    }
-
-    @Test
-    public void testIngredientTypeEnumFilling() {
-        assertEquals("FILLING", IngredientType.FILLING.name());
-    }
-
-    @Test
-    public void testIngredientTypeEnumValuesCount() {
-        assertEquals(2, IngredientType.values().length);
     }
 }

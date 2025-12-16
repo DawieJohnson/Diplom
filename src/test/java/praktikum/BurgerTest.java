@@ -45,6 +45,8 @@ public class BurgerTest {
                 {"black bun", 100f, 0, 0f, 200f},
                 {"white bun", 150f, 1, 50f, 350f},
                 {"red bun", 200f, 2, 50f, 500f},
+                {"cheap bun", 0f, 3, 0f, 0f},
+                {"expensive bun", 500f, 5, 100f, 1500f},
         };
     }
 
@@ -56,20 +58,14 @@ public class BurgerTest {
         when(mockBun.getName()).thenReturn(bunName);
         when(mockBun.getPrice()).thenReturn(bunPrice);
 
-        when(mockIngredient.getPrice()).thenReturn(ingredientPrice);
-        when(mockIngredient.getName()).thenReturn("test ingredient");
-        when(mockIngredient.getType()).thenReturn(IngredientType.SAUCE);
-
         burger.setBuns(mockBun);
 
         // Создаем разные mock объекты для каждого ингредиента
-        List<Ingredient> mockIngredients = new ArrayList<>();
         for (int i = 0; i < ingredientCount; i++) {
             Ingredient ingredientMock = mock(Ingredient.class);
             when(ingredientMock.getPrice()).thenReturn(ingredientPrice);
             when(ingredientMock.getName()).thenReturn("ingredient " + i);
             when(ingredientMock.getType()).thenReturn(i % 2 == 0 ? IngredientType.SAUCE : IngredientType.FILLING);
-            mockIngredients.add(ingredientMock);
             burger.addIngredient(ingredientMock);
         }
     }
@@ -81,20 +77,19 @@ public class BurgerTest {
     }
 
     @Test
-    public void testGetReceiptNotNull() {
+    public void testGetReceiptIngredientLinesCount() {
         String receipt = burger.getReceipt();
-        assertNotNull(receipt);
-    }
+        String normalizedReceipt = receipt.replace("\r\n", "\n").replace("\r", "\n");
 
-    @Test
-    public void testGetReceiptContainsBunName() {
-        String receipt = burger.getReceipt();
-        assertTrue(receipt.contains(bunName));
-    }
+        String[] lines = normalizedReceipt.split("\n");
+        int ingredientLines = 0;
+        for (String line : lines) {
+            if (line.trim().startsWith("=") && line.contains("ingredient") && !line.contains("====")) {
+                ingredientLines++;
+            }
+        }
 
-    @Test
-    public void testGetReceiptContainsPrice() {
-        String receipt = burger.getReceipt();
-        assertTrue(receipt.contains("Price:"));
+        assertEquals("Количество строк с ингредиентами должно соответствовать параметру",
+                ingredientCount, ingredientLines);
     }
 }
